@@ -1,16 +1,32 @@
-<div fxFill fxLayout="column">
-  <div class="nav-bar">
-    <nav mat-tab-nav-bar class="mat-app-background">
-      <a mat-tab-link
+<mat-sidenav-container fullscreen>
+  <mat-sidenav #start mode="side" opened="true">
+    <mat-nav-list fxFill fxLayout="column">
+      <a mat-list-item
          routerLink="/"
          routerLinkActive
-         #rla="routerLinkActive"
-         [active]="rla.isActive">
+         #rla="routerLinkActive">
         <span fxFill fxLayoutAlign="center center">Home</span>
       </a>
-    </nav>
+      <a mat-list-item
+         routerLink="/disc"
+         routerLinkActive
+         #rla="routerLinkActive">
+        <span fxFill fxLayoutAlign="center center">Discussion</span>
+      </a>
+      <a mat-list-item
+         routerLink="/ref"
+         routerLinkActive
+         #rla="routerLinkActive">
+        <span fxFill fxLayoutAlign="center center">References</span>
+      </a>
+      <span fxFlex></span>
+      <a mat-list-item
+         href="https://github.com/CaerusKaru/geo">
+        <span fxFill fxLayoutAlign="center center">GitHub</span>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+  <div fxFlexFill>
+    <router-outlet></router-outlet>
   </div>
-
-  <router-outlet></router-outlet>
-</div>
-
+</mat-sidenav-container>
