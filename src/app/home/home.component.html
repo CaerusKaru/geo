@@ -1,3 +1,19 @@
 <div fxFill>
-  <geo-viz fxFlex></geo-viz>
+  <div style="padding: 32px" fxFlex fxLayout="column">
+    <h1 class="mat-headline">Shortest Path in a Polygon</h1>
+    <geo-viz fxFlex></geo-viz>
+    <div fxFlexOffset="10px" fxLayoutGap="10px">
+      <button mat-raised-button (click)="triangulate()">COMPUTE</button>
+      <button mat-raised-button (click)="undo()">UNDO</button>
+      <button mat-raised-button (click)="clear()">CLEAR</button>
+    </div>
+    <div fxFlexOffset="10px">
+      <mat-checkbox id="tri" (change)="updateCheck($event)">
+        Show triangulation
+      </mat-checkbox>
+      <mat-checkbox id="dual" (change)="updateCheck($event)">
+        Show dual
+      </mat-checkbox>
+    </div>
+  </div>
 </div>

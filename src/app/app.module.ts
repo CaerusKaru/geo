@@ -12,6 +12,7 @@ import {VizComponent} from './home/viz/viz.component';
 import {RefComponent} from './ref/ref.component';
 import {DiscComponent} from './disc/disc.component';
 import {FormsModule} from '@angular/forms';
+import {HomeService} from './home/home.service';
 
 
 @NgModule({
@@ -30,7 +31,9 @@ import {FormsModule} from '@angular/forms';
     FlexLayoutModule,
     FormsModule,
   ],
-  providers: [],
+  providers: [
+    HomeService,
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

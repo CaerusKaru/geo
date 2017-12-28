@@ -1,25 +1,20 @@
-<div style="padding: 32px" fxFlex fxLayout="column">
-  <h1 class="mat-headline">Shortest Path in a Polygon</h1>
-  <svg fxFlex class="viz-port mat-elevation-z8" #viz>
-    <circle [attr.cx]="cursorx" [attr.cy]="cursory" r="10" *ngIf="mouseactive && !polydone"/>
-    <circle [attr.cx]="cursorx" [attr.cy]="cursory" r="10" *ngIf="pointA || pointB" [attr.fill]="pointA ? 'red' : 'green'"/>
-    <circle *ngIf="pA" [attr.cx]="pA.x" [attr.cy]="pA.y" r="10" fill="red"/>
-    <circle *ngIf="pB" [attr.cx]="pB.x" [attr.cy]="pB.y" r="10" fill="green"/>
-    <circle *ngFor="let dot of dots" [attr.cx]="dot.x" [attr.cy]="dot.y" r="10"/>
-    <circle *ngFor="let center of centers" [attr.cx]="center.x" [attr.cy]="center.y" r="5"/>
-    <polyline fill="none" stroke="black" *ngIf="lastdot && !polydone"
-              [attr.points]="lastdot.x + ',' + lastdot.y + ' ' + cursorx + ',' + cursory"/>
-    <polyline fill="none" stroke="black"
-              [attr.points]="formatDots()"/>
-    <polyline fill="none" stroke="black"
-              *ngFor="let tri of triangulation"
-              [attr.points]="getTri(tri)"/>
-  </svg>
-  <div fxFlexOffset="10px" fxLayoutGap="10px">
-    <button mat-raised-button (click)="triangulate()">COMPUTE</button>
-    <button mat-raised-button (click)="clear()">CLEAR</button>
-  </div>
-  <div fxFlexOffset="10px">
-    <mat-checkbox [(ngModel)]="showTriangulation">Show triangulation</mat-checkbox>
-  </div>
-</div>
+<svg fxFlex class="viz-port mat-elevation-z8" #viz>
+  <ng-container *ngIf="!(outlineDone | async)">
+    <circle [attr.cx]="cursorX" [attr.cy]="cursorY" r="10" *ngIf="mouseActive"></circle>
+  </ng-container>
+  <circle [attr.cx]="cursorX" [attr.cy]="cursorY" r="10"
+          *ngIf="(pointA | async) || (pointB | async)" [attr.fill]="(pointA | async) ? 'red' : 'green'"></circle>
+  <circle *ngIf="pA | async as a" [attr.cx]="a.x" [attr.cy]="a.y" r="10" fill="red"></circle>
+  <circle *ngIf="pB | async as b" [attr.cx]="b.x" [attr.cy]="b.y" r="10" fill="green"></circle>
+  <circle *ngFor="let dot of dots | async" [attr.cx]="dot.x" [attr.cy]="dot.y" r="10"></circle>
+  <circle *ngFor="let center of centers | async" [attr.cx]="center.x" [attr.cy]="center.y" r="5"></circle>
+  <ng-container *ngIf="!(outlineDone | async)">
+    <polyline fill="none" stroke="black" *ngIf="lastDot | async as e"
+              [attr.points]="e.x + ',' + e.y + ' ' + cursorX + ',' + cursorY"></polyline>
+  </ng-container>
+  <polyline fill="none" stroke="black" *ngIf="dots | async as d"
+            [attr.points]="formatDots(d)"></polyline>
+  <polyline fill="none" stroke="black"
+            *ngFor="let tri of triangulation | async"
+            [attr.points]="getTri(tri)"></polyline>
+</svg>
