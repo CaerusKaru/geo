@@ -8,10 +8,10 @@
       <button mat-raised-button (click)="clear()">CLEAR</button>
     </div>
     <div fxFlexOffset="10px">
-      <mat-checkbox id="tri" (change)="updateCheck($event)">
+      <mat-checkbox id="tri" (change)="updateCheck($event)" [checked]="showTriangulation | async">
         Show triangulation
       </mat-checkbox>
-      <mat-checkbox id="dual" (change)="updateCheck($event)">
+      <mat-checkbox id="dual" (change)="updateCheck($event)" [checked]="showDual | async">
         Show dual
       </mat-checkbox>
     </div>

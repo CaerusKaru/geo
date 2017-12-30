@@ -1,5 +1,4 @@
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
-import {Observable} from 'rxjs/Observable';
+import {Component, ViewEncapsulation} from '@angular/core';
 import {MatCheckboxChange} from '@angular/material';
 import {HomeService} from './home.service';
 
@@ -9,18 +8,12 @@ import {HomeService} from './home.service';
   styleUrls: ['./home.component.scss'],
   encapsulation: ViewEncapsulation.None
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent {
 
-  showTriangulation: Observable<boolean>;
-  showDual: Observable<boolean>;
+  showTriangulation = this._homeService.showTriangulation;
+  showDual = this._homeService.showDual;
 
-  constructor(private _homeService: HomeService) {
-    this.showTriangulation = _homeService.showTriangulation;
-    this.showDual = _homeService.showDual;
-  }
-
-  ngOnInit() {
-  }
+  constructor(private _homeService: HomeService) { }
 
   triangulate() {
     this._homeService.triangulate();

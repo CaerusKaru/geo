@@ -1,13 +1,17 @@
-import { Injectable } from '@angular/core';
+import {Injectable} from '@angular/core';
 import {BehaviorSubject} from 'rxjs/BehaviorSubject';
 import {Observable} from 'rxjs/Observable';
+import {from} from 'rxjs/observable/from';
 
 import * as pnltri from 'pnltri';
 
 export interface Triangle {
   a: number;
+  dA: SVGPoint;
   b: number;
+  dB: SVGPoint;
   c: number;
+  dC: SVGPoint;
   center: SVGPoint;
   neighbors: number[];
 }
@@ -26,37 +30,36 @@ export class HomeService {
   triangulation: Observable<Triangle[]>;
   pA: Observable<SVGPoint>;
   pB: Observable<SVGPoint>;
-  centers: Observable<SVGPoint[]>;
 
   private _pointA = new BehaviorSubject<boolean>(false);
   private _pointB = new BehaviorSubject<boolean>(false);
   private _vertices = new BehaviorSubject<SVGPoint[]>([]);
   private _showDual = new BehaviorSubject<boolean>(true);
-  private _showTriangulation = new BehaviorSubject<boolean>(false);
+  private _showTriangulation = new BehaviorSubject<boolean>(true);
   private _lastDot = new BehaviorSubject<SVGPoint>(null);
   private _polyDone = new BehaviorSubject<boolean>(false);
   private _outlineDone = new BehaviorSubject<boolean>(false);
   private _triangulation = new BehaviorSubject<Triangle[]>([]);
   private _pA = new BehaviorSubject<SVGPoint>(null);
   private _pB = new BehaviorSubject<SVGPoint>(null);
-  private _centers = new BehaviorSubject<SVGPoint[]>([]);
 
   private _adjList = [];
   private _createPoint: () => SVGPoint;
+  private _triangleA: Triangle;
+  private _triangleB: Triangle;
 
   constructor() {
-    this.showDual = this._showDual.asObservable();
-    this.showTriangulation = this._showTriangulation.asObservable();
-    this.pointA = this._pointA.asObservable();
-    this.pointB = this._pointB.asObservable();
-    this.lastDot = this._lastDot.asObservable();
-    this.dots = this._vertices.asObservable();
-    this.polyDone = this._polyDone.asObservable();
-    this.outlineDone = this._outlineDone.asObservable();
-    this.triangulation = this._triangulation.asObservable();
-    this.pA = this._pA.asObservable();
-    this.pB = this._pB.asObservable();
-    this.centers = this._centers.asObservable();
+    this.showDual = from(this._showDual);
+    this.showTriangulation = from(this._showTriangulation);
+    this.pointA = from(this._pointA);
+    this.pointB = from(this._pointB);
+    this.lastDot = from(this._lastDot);
+    this.dots = from(this._vertices);
+    this.polyDone = from(this._polyDone);
+    this.outlineDone = from(this._outlineDone);
+    this.triangulation = from(this._triangulation);
+    this.pA = from(this._pA);
+    this.pB = from(this._pB);
   }
 
   addVertex(pt: SVGPoint) {
@@ -107,9 +110,6 @@ export class HomeService {
   }
 
   getTriangle(tri: Triangle) {
-    if (!this._showTriangulation.getValue()) {
-      return '';
-    }
     const vertices = this._vertices.getValue();
     const triA = vertices[tri.a];
     const triB = vertices[tri.b];
@@ -140,7 +140,6 @@ export class HomeService {
     this._adjList = [];
     this._pA.next(null);
     this._pB.next(null);
-    this._centers.next([]);
     this._outlineDone.next(false);
   }
 
@@ -152,7 +151,6 @@ export class HomeService {
     if (polyDone) {
       this._polyDone.next(false);
       this._triangulation.next([]);
-      this._centers.next([]);
       this._pointB.next(true);
       this._pB.next(null);
       return;
@@ -180,34 +178,41 @@ export class HomeService {
     const triangulator = new pnltri.Triangulator();
     const triTask = triangulator.triangulate_polygon([this._vertices.getValue()]);
     this._triangulation.next(triTask.map(t => {
-      return {a: t[0], b: t[1], c: t[2], center: 0, neighbors: []};
+      return {
+        a: t[0],
+        dA: this._findMid(t[0], t[1]),
+        b: t[1],
+        dB: this._findMid(t[1], t[2]),
+        c: t[2],
+        dC: this._findMid(t[2], t[0]),
+        center: this._findCenter(t)};
     }));
-    // this.triDone = true;
-    this._calcCenters();
+
+    this._findSource();
   }
 
-  private _checkInterior(tri: Triangle, pt: SVGPoint) {
+  private _findSource() {
+    const triangulation = this._triangulation.getValue();
     const vertices = this._vertices.getValue();
-    const triA = vertices[tri.a];
-    const triB = vertices[tri.b];
-    const triC = vertices[tri.c];
-    const area = (a, b, c) => {
-      return ((a.x * (b.y - c.y)) + (b.x * (c.y - a.y)) + (c.x * (a.y - b.y))) / 2;
-    };
-
-    const refArea = area(triA, triB, triC);
-    const areaA = area(pt, triB, triC);
-    const areaB = area(triA, pt, triC);
-    const areaC = area(triA, triB, pt);
-
-    return refArea === areaA && refArea === areaB && refArea === areaC;
+    const pointA = this._pA.getValue();
+    const pointB = this._pB.getValue();
+    for (let i = 0; i < triangulation.length; i++) {
+      const tri = triangulation[i];
+      const triVerts = [vertices[tri.a], vertices[tri.b], vertices[tri.c], vertices[tri.a]];
+      if (this._insidePolygon(pointA, triVerts)) {
+        this._triangleA = triangulation[i];
+      }
+      if (this._insidePolygon(pointB, triVerts)) {
+        this._triangleB = triangulation[i];
+      }
+    }
   }
 
-  private _findCenter(tri: Triangle) {
+  private _findCenter(tri) {
     const vertices = this._vertices.getValue();
-    const triA = vertices[tri.a];
-    const triB = vertices[tri.b];
-    const triC = vertices[tri.c];
+    const triA = vertices[tri[0]];
+    const triB = vertices[tri[1]];
+    const triC = vertices[tri[2]];
     const x = (triA.x + triB.x + triC.x) / 3;
     const y = (triA.y + triB.y + triC.y) / 3;
     const pt = this._createPoint();
@@ -216,30 +221,15 @@ export class HomeService {
     return pt;
   }
 
-  private _calcCenters() {
-    const triangulation = this._triangulation.getValue();
-    const centers = [];
-    triangulation.forEach((t, i) => {
-      t.center = this._findCenter(t);
-      centers.push(t.center);
-      triangulation.forEach((e, j) => {
-        if (i === j) {
-          return;
-        }
-        const conA = e.a === t.a || e.b === t.a || e.c === t.a;
-        const conB = e.a === t.b || e.b === t.b || e.c === t.b;
-        const conC = e.a === t.c || e.b === t.c || e.c === t.c;
+  private _findMid(pA, pB) {
+    const vertices = this._vertices.getValue();
+    const pointA = vertices[pA];
+    const pointB = vertices[pB];
+    const pt = this._createPoint();
+    pt.x = (pointA.x + pointB.x) / 2;
+    pt.y = (pointA.y + pointB.y) / 2;
 
-        const neighbors = conA && (conB || conC) || (conB && conC);
-        if (neighbors) {
-          t.neighbors.push(j);
-          e.neighbors.push(i);
-        }
-      });
-    });
-
-    this._centers.next(centers);
-    this._triangulation.next(triangulation);
+    return pt;
   }
 
   private _getDistance(ptA, ptB) {

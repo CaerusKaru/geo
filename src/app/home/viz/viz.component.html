@@ -1,20 +1,40 @@
 <svg fxFlex class="viz-port mat-elevation-z8" #viz>
   <ng-container *ngIf="!(outlineDone | async)">
-    <circle [attr.cx]="cursorX" [attr.cy]="cursorY" r="10" *ngIf="mouseActive"></circle>
+    <circle [attr.cx]="cursorX" [attr.cy]="cursorY" r="7.5" *ngIf="mouseActive"></circle>
   </ng-container>
-  <circle [attr.cx]="cursorX" [attr.cy]="cursorY" r="10"
+  <circle [attr.cx]="cursorX" [attr.cy]="cursorY" r="7.5"
           *ngIf="(pointA | async) || (pointB | async)" [attr.fill]="(pointA | async) ? 'red' : 'green'"></circle>
-  <circle *ngIf="pA | async as a" [attr.cx]="a.x" [attr.cy]="a.y" r="10" fill="red"></circle>
-  <circle *ngIf="pB | async as b" [attr.cx]="b.x" [attr.cy]="b.y" r="10" fill="green"></circle>
-  <circle *ngFor="let dot of dots | async" [attr.cx]="dot.x" [attr.cy]="dot.y" r="10"></circle>
-  <circle *ngFor="let center of centers | async" [attr.cx]="center.x" [attr.cy]="center.y" r="5"></circle>
+  <circle *ngIf="pA | async as a" [attr.cx]="a.x" [attr.cy]="a.y" r="7.5" fill="red"></circle>
+  <circle *ngIf="pB | async as b" [attr.cx]="b.x" [attr.cy]="b.y" r="7.5" fill="green"></circle>
+  <circle *ngFor="let dot of dots | async" [attr.cx]="dot.x" [attr.cy]="dot.y" r="7.5"></circle>
+
   <ng-container *ngIf="!(outlineDone | async)">
     <polyline fill="none" stroke="black" *ngIf="lastDot | async as e"
               [attr.points]="e.x + ',' + e.y + ' ' + cursorX + ',' + cursorY"></polyline>
   </ng-container>
-  <polyline fill="none" stroke="black" *ngIf="dots | async as d"
-            [attr.points]="formatDots(d)"></polyline>
-  <polyline fill="none" stroke="black"
-            *ngFor="let tri of triangulation | async"
-            [attr.points]="getTri(tri)"></polyline>
+
+  <ng-container *ngIf="dots | async as d">
+    <polyline fill="none" stroke="black"
+              [attr.points]="formatDots(d)"></polyline>
+    <polygon fill="yellow" stroke="none" fill-opacity=".25"
+             [attr.points]="formatDots(d) + ' ' + cursorX + ',' + cursorY"></polygon>
+  </ng-container>
+
+  <ng-container *ngIf="showTriangulation | async">
+    <polyline fill="none" stroke="black"
+              *ngFor="let tri of triangulation | async"
+              [attr.points]="getTri(tri)"></polyline>
+  </ng-container>
+
+  <ng-container *ngIf="showDual | async">
+    <ng-container *ngFor="let tri of triangulation | async">
+      <circle [attr.cx]="tri.center.x" [attr.cy]="tri.center.y" r="5" fill="blue"></circle>
+      <circle [attr.cx]="tri.dA.x" [attr.cy]="tri.dA.y" r="5" fill="blue"></circle>
+      <circle [attr.cx]="tri.dB.x" [attr.cy]="tri.dB.y" r="5" fill="blue"></circle>
+      <circle [attr.cx]="tri.dC.x" [attr.cy]="tri.dC.y" r="5" fill="blue"></circle>
+      <polyline fill="none" stroke="blue" [attr.points]="tri.dA.x + ',' + tri.dA.y + ' ' + tri.center.x + ',' + tri.center.y"></polyline>
+      <polyline fill="none" stroke="blue" [attr.points]="tri.dB.x + ',' + tri.dB.y + ' ' + tri.center.x + ',' + tri.center.y"></polyline>
+      <polyline fill="none" stroke="blue" [attr.points]="tri.dC.x + ',' + tri.dC.y + ' ' + tri.center.x + ',' + tri.center.y"></polyline>
+    </ng-container>
+  </ng-container>
 </svg>

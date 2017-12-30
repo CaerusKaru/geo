@@ -5,7 +5,7 @@ import {
   OnDestroy,
   OnInit,
   Renderer2,
-  ViewChild
+  ViewChild,
 } from '@angular/core';
 import {Subject} from 'rxjs/Subject';
 
@@ -21,7 +21,8 @@ export class VizComponent implements OnInit, OnDestroy {
 
   @ViewChild('viz') svg: ElementRef;
 
-  // showTriangulation = this._homeService.showTriangulation;
+  showTriangulation = this._homeService.showTriangulation;
+  showDual = this._homeService.showDual;
   polyDone = this._homeService.polyDone;
   outlineDone = this._homeService.outlineDone;
   lastDot = this._homeService.lastDot;
@@ -31,7 +32,6 @@ export class VizComponent implements OnInit, OnDestroy {
   pB = this._homeService.pB;
   triangulation = this._homeService.triangulation;
   dots = this._homeService.dots;
-  centers = this._homeService.centers;
 
   // triDone = this._homeService.triDone;
 
@@ -54,6 +54,9 @@ export class VizComponent implements OnInit, OnDestroy {
   @HostListener('mousemove', ['$event'])
   @HostListener('touchmove', ['$event'])
   mousemove(evt: MouseEvent|TouchEvent) {
+    if (!this.mouseActive) {
+      return;
+    }
     const pt = this._getLocalMouse(evt);
     this.cursorX = pt.x;
     this.cursorY = pt.y;
@@ -62,6 +65,9 @@ export class VizComponent implements OnInit, OnDestroy {
   @HostListener('mousedown', ['$event'])
   @HostListener('touchstart', ['$event'])
   onclick(evt: MouseEvent|TouchEvent) {
+    if (!this.mouseActive) {
+      return;
+    }
     const pt = this._getLocalMouse(evt);
     this._homeService.addVertex(pt);
   }
