@@ -32,6 +32,7 @@ export class VizComponent implements OnInit, OnDestroy {
   pB = this._homeService.pB;
   triangulation = this._homeService.triangulation;
   dots = this._homeService.dots;
+  shortestPath = this._homeService.shortestPath;
 
   // triDone = this._homeService.triDone;
 

@@ -13,7 +13,12 @@ export interface Triangle {
   c: number;
   dC: SVGPoint;
   center: SVGPoint;
-  neighbors: number[];
+  children: number[];
+}
+
+interface Edge {
+  a: number;
+  b: number;
 }
 
 @Injectable()
@@ -30,6 +35,7 @@ export class HomeService {
   triangulation: Observable<Triangle[]>;
   pA: Observable<SVGPoint>;
   pB: Observable<SVGPoint>;
+  shortestPath: Observable<SVGPoint[]>;
 
   private _pointA = new BehaviorSubject<boolean>(false);
   private _pointB = new BehaviorSubject<boolean>(false);
@@ -42,11 +48,13 @@ export class HomeService {
   private _triangulation = new BehaviorSubject<Triangle[]>([]);
   private _pA = new BehaviorSubject<SVGPoint>(null);
   private _pB = new BehaviorSubject<SVGPoint>(null);
+  private _shortestPath = new BehaviorSubject<SVGPoint[]>([]);
 
   private _adjList = [];
   private _createPoint: () => SVGPoint;
-  private _triangleA: Triangle;
-  private _triangleB: Triangle;
+  private _triangleA: number;
+  private _triangleB: number;
+  private _dualTreeRoot: number;
 
   constructor() {
     this.showDual = from(this._showDual);
@@ -58,6 +66,7 @@ export class HomeService {
     this.polyDone = from(this._polyDone);
     this.outlineDone = from(this._outlineDone);
     this.triangulation = from(this._triangulation);
+    this.shortestPath = from(this._shortestPath);
     this.pA = from(this._pA);
     this.pB = from(this._pB);
   }
@@ -141,6 +150,7 @@ export class HomeService {
     this._pA.next(null);
     this._pB.next(null);
     this._outlineDone.next(false);
+    this._shortestPath.next([]);
   }
 
   undo() {
@@ -149,6 +159,7 @@ export class HomeService {
     const pointB = this._pointB.getValue();
     const polyDone = this._polyDone.getValue();
     if (polyDone) {
+      this._shortestPath.next([]);
       this._polyDone.next(false);
       this._triangulation.next([]);
       this._pointB.next(true);
@@ -185,10 +196,112 @@ export class HomeService {
         dB: this._findMid(t[1], t[2]),
         c: t[2],
         dC: this._findMid(t[2], t[0]),
-        center: this._findCenter(t)};
+        center: this._findCenter(t),
+        children: []
+      };
     }));
 
     this._findSource();
+    this._buildTree();
+    this._findPaths(this._BFS()); // list of triangles for the subpolygon
+  }
+
+  private _findPaths(subPolygon: number[]) {
+
+    const triangulation = this._triangulation.getValue();
+    const vertices = this._vertices.getValue();
+    const dest = this._pB.getValue();
+    const portals: Edge[] = [];
+
+    const containsEdge = (tri, a, b) => {
+      return (a === tri.a || a === tri.b || a === tri.c) && (b === tri.a || b === tri.b || b === tri.c);
+    };
+
+    const addPortal = (prevPortal, a, b, i) => {
+      if (prevPortal != null) {
+        const prevA = prevPortal.a === a || prevPortal.a === b;
+
+        portals[i] = prevA ?
+          {
+            a: prevPortal.a === a ? a : b,
+            b: prevPortal.a === a ? b : a
+          }
+          :
+          {
+            a: prevPortal.b === a ? b : a,
+            b: prevPortal.b === a ? a : b
+          };
+      } else {
+        portals[i] = {a, b};
+      }
+    };
+
+    const crossProduct = (a, b, c) => {
+      return ((b.x - a.x) * (c.y - a.y)) - ((b.y - a.y) * (c.x - a.x));
+    };
+
+    const shortestPath = [this._pA.getValue()];
+    let apex = this._pA.getValue();
+
+    for (let i = 1; i < subPolygon.length; i++) {
+      const triA = triangulation[subPolygon[i - 1]];
+      const triB = triangulation[subPolygon[i]];
+      const prevPortal = portals[i];
+
+      if (containsEdge(triB, triA.a, triA.b)) {
+        addPortal(prevPortal, triA.a, triA.b, i);
+      }
+
+      if (containsEdge(triB, triA.b, triA.c)) {
+        addPortal(prevPortal, triA.b, triA.c, i);
+      }
+
+      if (containsEdge(triB, triA.c, triA.a)) {
+        addPortal(prevPortal, triA.c, triA.a, i);
+      }
+    }
+
+    portals.push({a: -1, b: -1});
+
+    let left = portals.length > 1 ? portals[1].a : null;
+    let right = portals.length > 1 ? portals[1].b : null;
+
+    for (let i = 1; i < portals.length - 1; i++) {
+      const nextPortal = portals[i + 1];
+
+      if (nextPortal.a !== left) {
+        if (crossProduct(apex, vertices[left], nextPortal.a !== -1 ? vertices[nextPortal.a] : dest) >= 0) {
+          if (crossProduct(apex, vertices[right], nextPortal.a !== -1 ? vertices[nextPortal.a] : dest) >= 0) {
+            shortestPath.push(vertices[right]);
+            apex = vertices[right];
+            left = nextPortal.a;
+          } else {
+            left = nextPortal.a;
+            if (left === -1) {
+              break;
+            }
+          }
+        }
+      }
+
+      if (nextPortal.b !== right) {
+        if (crossProduct(apex, vertices[right], nextPortal.b !== -1 ? vertices[nextPortal.b] : dest) <= 0) {
+          if (crossProduct(apex, vertices[left], nextPortal.b !== -1 ? vertices[nextPortal.b] : dest) <= 0) {
+            shortestPath.push(vertices[left]);
+            apex = vertices[left];
+            right = nextPortal.b;
+          } else {
+            right = nextPortal.b;
+            if (right === -1) {
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    shortestPath.push(this._pB.getValue());
+    this._shortestPath.next(shortestPath);
   }
 
   private _findSource() {
@@ -196,16 +309,83 @@ export class HomeService {
     const vertices = this._vertices.getValue();
     const pointA = this._pA.getValue();
     const pointB = this._pB.getValue();
-    for (let i = 0; i < triangulation.length; i++) {
-      const tri = triangulation[i];
+    triangulation.forEach((tri, i) => {
       const triVerts = [vertices[tri.a], vertices[tri.b], vertices[tri.c], vertices[tri.a]];
       if (this._insidePolygon(pointA, triVerts)) {
-        this._triangleA = triangulation[i];
+        this._triangleA = i;
       }
       if (this._insidePolygon(pointB, triVerts)) {
-        this._triangleB = triangulation[i];
+        this._triangleB = i;
+      }
+    });
+  }
+
+  private _buildTree() {
+    const triangulation = this._triangulation.getValue();
+    const vertices = this._vertices.getValue();
+
+    const adjMatrix = [];
+
+    vertices.forEach((v, i) => {
+      adjMatrix[i] = [];
+    });
+
+    const checkEdge = (tri, a, b, i) => {
+      if (adjMatrix[a][b] != null) {
+        tri.children.push(adjMatrix[a][b]);
+        triangulation[adjMatrix[a][b]].children.push(i);
+      } else {
+        adjMatrix[a][b] = i;
+        adjMatrix[b][a] = i;
+      }
+    };
+
+    triangulation.forEach((tri, i) => {
+      checkEdge(tri, tri.a, tri.b, i);
+      checkEdge(tri, tri.b, tri.c, i);
+      checkEdge(tri, tri.c, tri.a, i);
+    });
+
+    this._triangulation.next(triangulation);
+  }
+
+  private _BFS() {
+    const triangulation = this._triangulation.getValue();
+
+    const visited = [];
+    const queue = [this._triangleA];
+    visited[this._triangleA] = true;
+    const subPolygon = [];
+    const parents = [];
+
+    while (queue.length > 0) {
+      const tri = queue.shift();
+      if (tri === this._triangleB) {
+        break;
+      }
+
+      visited[tri] = true;
+      triangulation[tri].children.forEach(c => {
+        if (!visited[c]) {
+          parents[c] = tri;
+          queue.push(c);
+        }
+      });
+    }
+
+    let current = this._triangleB;
+    subPolygon.push(current);
+    while (true) {
+      current = parents[current];
+      if (current != null) {
+        subPolygon.push(current);
+      }
+      if (current === this._triangleA || !current) {
+        break;
       }
     }
+
+    return subPolygon.reverse();
   }
 
   private _findCenter(tri) {
