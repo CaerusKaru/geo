@@ -23,6 +23,7 @@ export class VizComponent implements OnInit, OnDestroy {
 
   showTriangulation = this._homeService.showTriangulation;
   showDual = this._homeService.showDual;
+  showSubPolygon = this._homeService.showSubPolygon;
   polyDone = this._homeService.polyDone;
   outlineDone = this._homeService.outlineDone;
   lastDot = this._homeService.lastDot;
@@ -33,6 +34,7 @@ export class VizComponent implements OnInit, OnDestroy {
   triangulation = this._homeService.triangulation;
   dots = this._homeService.dots;
   shortestPath = this._homeService.shortestPath;
+  subPolygon = this._homeService.subPolygon;
 
   // triDone = this._homeService.triDone;
 

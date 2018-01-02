@@ -12,6 +12,7 @@ export class HomeComponent {
 
   showTriangulation = this._homeService.showTriangulation;
   showDual = this._homeService.showDual;
+  showSubPolygon = this._homeService.showSubPolygon;
 
   constructor(private _homeService: HomeService) { }
 
@@ -32,6 +33,8 @@ export class HomeComponent {
       this._homeService.setTriangulation(evt.checked);
     } else if (evt.source.id === 'dual') {
       this._homeService.setDual(evt.checked);
+    } else if (evt.source.id === 'sub') {
+      this._homeService.setSubPolygon(evt.checked);
     }
   }
 

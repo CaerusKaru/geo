@@ -7,6 +7,7 @@
     "start": "ng serve",
     "hmr": "ng serve --hmr -e=hmr",
     "build": "ng build --base-href='/~ap/geo/'",
+    "prod": "ng build --base-href='/~ap/geo/' --prod",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e"

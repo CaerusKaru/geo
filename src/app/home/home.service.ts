@@ -26,6 +26,7 @@ export class HomeService {
 
   showDual: Observable<boolean>;
   showTriangulation: Observable<boolean>;
+  showSubPolygon: Observable<boolean>;
   pointA: Observable<boolean>;
   pointB: Observable<boolean>;
   lastDot: Observable<SVGPoint>;
@@ -36,12 +37,14 @@ export class HomeService {
   pA: Observable<SVGPoint>;
   pB: Observable<SVGPoint>;
   shortestPath: Observable<SVGPoint[]>;
+  subPolygon: Observable<SVGPoint[]>;
 
   private _pointA = new BehaviorSubject<boolean>(false);
   private _pointB = new BehaviorSubject<boolean>(false);
   private _vertices = new BehaviorSubject<SVGPoint[]>([]);
-  private _showDual = new BehaviorSubject<boolean>(true);
+  private _showDual = new BehaviorSubject<boolean>(false);
   private _showTriangulation = new BehaviorSubject<boolean>(true);
+  private _showSubPolygon = new BehaviorSubject<boolean>(false);
   private _lastDot = new BehaviorSubject<SVGPoint>(null);
   private _polyDone = new BehaviorSubject<boolean>(false);
   private _outlineDone = new BehaviorSubject<boolean>(false);
@@ -49,6 +52,7 @@ export class HomeService {
   private _pA = new BehaviorSubject<SVGPoint>(null);
   private _pB = new BehaviorSubject<SVGPoint>(null);
   private _shortestPath = new BehaviorSubject<SVGPoint[]>([]);
+  private _subPolygon = new BehaviorSubject<SVGPoint[]>([]);
 
   private _adjList = [];
   private _createPoint: () => SVGPoint;
@@ -59,6 +63,7 @@ export class HomeService {
   constructor() {
     this.showDual = from(this._showDual);
     this.showTriangulation = from(this._showTriangulation);
+    this.showSubPolygon = from(this._showSubPolygon);
     this.pointA = from(this._pointA);
     this.pointB = from(this._pointB);
     this.lastDot = from(this._lastDot);
@@ -67,6 +72,7 @@ export class HomeService {
     this.outlineDone = from(this._outlineDone);
     this.triangulation = from(this._triangulation);
     this.shortestPath = from(this._shortestPath);
+    this.subPolygon = from(this._subPolygon);
     this.pA = from(this._pA);
     this.pB = from(this._pB);
   }
@@ -134,6 +140,10 @@ export class HomeService {
     this._showTriangulation.next(st);
   }
 
+  setSubPolygon(st: boolean) {
+    this._showSubPolygon.next(st);
+  }
+
   setCreatePoint(cp: () => SVGPoint, ctx) {
     this._createPoint = cp.bind(ctx);
   }
@@ -151,6 +161,7 @@ export class HomeService {
     this._pB.next(null);
     this._outlineDone.next(false);
     this._shortestPath.next([]);
+    this._subPolygon.next([]);
   }
 
   undo() {
@@ -164,6 +175,7 @@ export class HomeService {
       this._triangulation.next([]);
       this._pointB.next(true);
       this._pB.next(null);
+      this._subPolygon.next([]);
       return;
     }
     if (pointB) {
@@ -261,47 +273,85 @@ export class HomeService {
       }
     }
 
+    this._constructSubPolygon([...portals]);
+
     portals.push({a: -1, b: -1});
 
-    let left = portals.length > 1 ? portals[1].a : null;
-    let right = portals.length > 1 ? portals[1].b : null;
+    let leftIndex = 1;
+    let rightIndex = 1;
+    let apexIndex = 0;
 
-    for (let i = 1; i < portals.length - 1; i++) {
-      const nextPortal = portals[i + 1];
+    for (let i = 2; i <= portals.length; i++) {
+      const nextPortal = portals[i];
 
-      if (nextPortal.a !== left) {
-        if (crossProduct(apex, vertices[left], nextPortal.a !== -1 ? vertices[nextPortal.a] : dest) >= 0) {
-          if (crossProduct(apex, vertices[right], nextPortal.a !== -1 ? vertices[nextPortal.a] : dest) >= 0) {
-            shortestPath.push(vertices[right]);
-            apex = vertices[right];
-            left = nextPortal.a;
-          } else {
-            left = nextPortal.a;
-            if (left === -1) {
-              break;
-            }
-          }
+      if (i === portals.length) {
+        break;
+      }
+
+      const left = vertices[portals[leftIndex].a];
+      const right = vertices[portals[rightIndex].b];
+      const last = nextPortal.a === -1;
+      const nextLeft = last ? dest : vertices[nextPortal.a];
+      const nextRight = last ? dest : vertices[nextPortal.b];
+
+      // configure left vertex
+      if (crossProduct(apex, left, nextLeft) >= 0) {
+        if (apex === left || crossProduct(apex, right, nextLeft) < 0) {
+          leftIndex = i;
+        } else {
+          shortestPath.push(right);
+          apex = right;
+          apexIndex = rightIndex;
+          leftIndex = rightIndex + 1;
+          rightIndex = rightIndex + 1;
+          i = rightIndex;
+          continue;
         }
       }
 
-      if (nextPortal.b !== right) {
-        if (crossProduct(apex, vertices[right], nextPortal.b !== -1 ? vertices[nextPortal.b] : dest) <= 0) {
-          if (crossProduct(apex, vertices[left], nextPortal.b !== -1 ? vertices[nextPortal.b] : dest) <= 0) {
-            shortestPath.push(vertices[left]);
-            apex = vertices[left];
-            right = nextPortal.b;
-          } else {
-            right = nextPortal.b;
-            if (right === -1) {
-              break;
-            }
-          }
+      // configure right vertex
+      if (crossProduct(apex, right, nextRight) <= 0) {
+        if (apex === right || crossProduct(apex, left, nextRight) > 0) {
+          rightIndex = i;
+        } else {
+          shortestPath.push(left);
+          apex = left;
+          apexIndex = leftIndex;
+          rightIndex = leftIndex + 1;
+          leftIndex = leftIndex + 1;
+          i = leftIndex;
+          continue;
         }
       }
     }
 
     shortestPath.push(this._pB.getValue());
     this._shortestPath.next(shortestPath);
+  }
+
+  private _constructSubPolygon(portals) {
+    const pA = this._pA.getValue();
+    const pB = this._pB.getValue();
+    const vertices = this._vertices.getValue();
+    const subPolygon = [pA];
+
+    portals.forEach(p => {
+      if (subPolygon[subPolygon.length - 1] !== vertices[p.a]) {
+        subPolygon.push(vertices[p.a]);
+      }
+    });
+
+    subPolygon.push(pB);
+    portals = portals.reverse();
+
+    portals.forEach(p => {
+      if (subPolygon[subPolygon.length - 1] !== vertices[p.b]) {
+        subPolygon.push(vertices[p.b]);
+      }
+    });
+
+    subPolygon.push(pA);
+    this._subPolygon.next(subPolygon);
   }
 
   private _findSource() {

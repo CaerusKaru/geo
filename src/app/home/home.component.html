@@ -7,12 +7,15 @@
       <button mat-raised-button (click)="undo()">UNDO</button>
       <button mat-raised-button (click)="clear()">CLEAR</button>
     </div>
-    <div fxFlexOffset="10px">
+    <div fxFlexOffset="10px" fxLayoutGap="16px">
       <mat-checkbox id="tri" (change)="updateCheck($event)" [checked]="showTriangulation | async">
         Show triangulation
       </mat-checkbox>
       <mat-checkbox id="dual" (change)="updateCheck($event)" [checked]="showDual | async">
         Show dual
+      </mat-checkbox>
+      <mat-checkbox id="sub" (change)="updateCheck($event)" [checked]="showSubPolygon | async">
+        Show subpolygon
       </mat-checkbox>
     </div>
   </div>
