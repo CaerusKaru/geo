@@ -1,3 +1,84 @@
 <div fxLayout="column" style="padding: 32px">
   <h1 class="mat-headline">Shortest Path Discussion</h1>
+  <h2 class="mat-title">Introduction</h2>
+  <p class="mat-body-1">
+    Bernard Chazelle once wrote about what he termed "the car-racing problem".
+    The concept is simple: how do you find the shortest path for a racecar traveling a circuit?
+    Put more formally, how efficiently can we compute the shortest path between two points A and B contained inside a simple polygon.
+    There are many potential solutions to this problem, some of which produce suboptimal paths, and some of which are suboptimal in computation time.
+    This solution and visualization shows how to compute this in time proportional to the number of vertices in the input polygon, also known as linear time.
+    Several computational tools are used to accomplish this, namely triangulation, duality, tree structure, searching, and vector calculus.
+    The below discussion will first detail the algorithm in depth, and then provide a justification for the algorithm with various lemmas.
+    Finally, applications and extensions for the algorithm will be detailed in brief for the eternally curious.
+  </p>
+  <h2 class="mat-title">The Algorithm</h2>
+  <p class="mat-body-1">
+    In order to calculate the path, we can consider several different algorithms and pick the one that is computationally optimal.
+    First, we could calculate the angle bisector of the polygon and follow that path from A to B.
+    Equivalently, we can triangulate the polygon first, and then use the centroids of the triangles to construct a path from the triangle containing A to the triangle containing B.
+    We could also calculate the visibility polygon for all pairs of points, and then add weights representing the Euclidean distance between endpoints.
+    Unfortunately, these solutions all produce either suboptimal paths or suboptimal time complexities.
+  </p>
+  <p class="mat-body-1">
+    The effective solution is composed of multiple operations, all of which take time proportional to the number of vertices in the input polygon to compute.
+    This algorithm will be detailed and explained as follows:
+  </p>
+  <ol class="mat-body-1">
+    <li>
+      Triangulate the polygon using Chazelle's triangulation algorithm
+    </li>
+    <li>
+      Calculate the dual tessellation of the triangulation, which results in a tree where nodes represent the center of each triangle, and the edges represent neighboring triangles.
+      This is linear because the triangulation represents a planar graph
+    </li>
+    <li>
+      Find the shortest path from the triangle containing A to the triangle containing B using a breadth-first search.
+      This takes O(|V| + |E|) time for the number of vertices and edges in the tree.
+      Since the tree is planar, this is also linear
+    </li>
+    <li>
+      We then convert our path from A to B in the dual into a subpolygon.
+      We use this to calculate rectilinear barriers, also known as "portals," that we must pass through in creating our path from A to B.
+      The portals are chords within the sub-polygon.
+      As we advance through the sequence of portals, each portal contains one new vertex and one old vertex
+    </li>
+    <li>
+      This section is supplemented by pictures below.
+      We now have our list of portals, from which two paths have formed, to the right and left of our source point leading to our destination point (shown in Figure 1).
+      We consider each new vertex in each portal and create a funnel, with the apex starting at our source point and the right and left vertices on the first portal of the sub-polygon (shown in Figure 2A).
+      If we can narrow the funnel using the new vertex on the next portal, we set the right/left part of the funnel to that vertex (shown in Figure 2B, 2C, and 2D), otherwise we skip it (shown in Figure 2E).
+      If adding the next new vertex crosses outside the funnel completely (shown in Figure 2F), we add the previously skipped vertex as a part of the path, and reset the apex, left, and right vertices accordingly (shown in Figure 2G)
+    </li>
+    <li>
+      At the end, we have computed our shortest path from A to B in linear time.
+      The justification for this algorithm can be seen below in the Lemmas section
+    </li>
+  </ol>
+  <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
+    <img src="assets/funnel1.png"/>
+    <span class="mat-caption">Figure 1. The subpolygon with rectilinear barriers highlighted</span>
+  </div>
+  <span fxFlex="20px"></span>
+  <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
+    <img src="assets/funnel2.png"/>
+    <span class="mat-caption">Figure 2. The sequence of operations for the "funnel algorithm"</span>
+  </div>
+  <h2 class="mat-title">Lemmas</h2>
+  <p class="mat-body-1">
+    All lemmas below are in support of the following theorem: <br>
+    <span class="mat-body-2">
+      "Let <i>P</i> be a simple <i>N</i>-gon, as assume that any triangulation of <i>P</i> is available.
+      For any pair of points <i>A,B</i> in <i>P</i>, it is possible to compute the internal path from <i>A</i> to <i>B</i> in <i>O(N)</i> time, which is optimal in the worst case."
+    </span>
+  </p>
+  <p class="mat-body-1">
+    <b>Lemma 1:</b> The internal path between <i>A</i> and <i>B</i> in <i>P</i> is identical to the internal path between <i>A</i> and <i>B</i> in the sub-polygon of <i>P</i> denoted <i>P*</i> that is composed of all triangles that contain the path from <i>A</i> to <i>B</i>.
+  </p>
+  <p class="mat-body-1">
+    <b>Lemma 2:</b> The internal path between <i>A</i> and <i>B</i> intersects every interior edge of <i>P*</i> exactly once, and intersects no other edge in the triangulation of <i>P</i>.
+  </p>
+  <p class="mat-body-1">
+    <b>Lemma 3:</b> For any <i>i</i>: <i>1≤i≤p</i>, there exists a vertex <i>v</i> of <i>P*</i> such that the internal path from <i>A</i> to <i>a<sub>i</sub></i> is equivalent to the internal path from <i>A</i> to <i>v</i> unioned with a convex, non-intersecting polygonal line, where the same holds for <i>A</i> to <i>b<sub>i</sub></i> and <i>A</i> to <i>v</i> unioned with a convex, non-intersecting polygonal line, where the two lines turn their convexity against each other
+  </p>
+  <span class="mat-caption">Note: For a detailed description of the visualization, please read the repo's README on GitHub</span>
 </div>
