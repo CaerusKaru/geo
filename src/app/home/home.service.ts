@@ -1,7 +1,5 @@
 import {Injectable} from '@angular/core';
-import {BehaviorSubject} from 'rxjs/BehaviorSubject';
-import {Observable} from 'rxjs/Observable';
-import {from} from 'rxjs/observable/from';
+import {BehaviorSubject, Observable, from} from 'rxjs';
 
 import * as pnltri from 'pnltri';
 

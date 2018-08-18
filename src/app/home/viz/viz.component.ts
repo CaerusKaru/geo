@@ -7,10 +7,10 @@ import {
   Renderer2,
   ViewChild,
 } from '@angular/core';
-import {Subject} from 'rxjs/Subject';
+import {Subject} from 'rxjs';
 
 import {HomeService, Triangle} from '../home.service';
-import {takeUntil} from 'rxjs/operators/takeUntil';
+import {takeUntil} from 'rxjs/operators';
 
 @Component({
   selector: 'geo-viz',
